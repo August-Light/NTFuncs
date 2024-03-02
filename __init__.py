@@ -75,7 +75,7 @@ class ArithmeticFunction:
                 s = 0
                 for d in factors(n):
                     if d != 1:
-                        s += self(d) * self.inv()(n // d)
+                        s += self(d) * f(n // d)
                 return -s / self(1)
         return ArithmeticFunction(f)
 
@@ -97,7 +97,7 @@ class ArithmeticFunction:
         return True
 
 
-def dot_product(f: ArithmeticFunction, g: ArithmeticFunction):
+def dot_product(f, g):
     return ArithmeticFunction(lambda n: f(n) * g(n))
 
 
@@ -132,8 +132,8 @@ class Sigma(MultiplicativeFunction):
         if e == 0:
             MultiplicativeFunction.__init__(self, lambda p, k: k+1)
         else:
-            MultiplicativeFunction.__init__(self, lambda p, k: int((
-                qpow(p, (k + 1) * e) - 1) / (qpow(p, e) - 1)))
+            MultiplicativeFunction.__init__(self, lambda p, k: (
+                qpow(p, (k + 1) * e) - 1) // (qpow(p, e) - 1))
 
 
 class AdditiveFunction(ArithmeticFunction):
@@ -152,3 +152,4 @@ class AdditiveFunction(ArithmeticFunction):
 
 
 omega = AdditiveFunction(lambda p, k: 1)
+bigomega = AdditiveFunction(lambda p, k: k)
