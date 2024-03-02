@@ -1,4 +1,7 @@
-def get_factors(n: int, sort_flg: bool = False):
+import random
+
+
+def factors(n: int):
     assert n > 0
     ret = []
     i = 1
@@ -8,13 +11,29 @@ def get_factors(n: int, sort_flg: bool = False):
             if i * i != n:
                 ret.append(n // i)
         i += 1
-    if sort_flg:
-        ret.sort()
+    return ret
+
+
+def prime_factors(n):
+    ret = []
+    i = 2
+    while i * i <= n:
+        if n % i:
+            i += 1
+        else:
+            cnt = 0
+            while n % i == 0:
+                n //= i
+                cnt += 1
+            ret.append([i, cnt])
+    if n > 1:
+        ret.append([n, 1])
     return ret
 
 
 def qpow(a: int, b: int):
-    assert b >= 0
+    if b < 0:
+        raise ArithmeticError("The exponent must be nonnegative")
     ret = 1
     while b:
         if b & 1:
@@ -24,174 +43,112 @@ def qpow(a: int, b: int):
     return ret
 
 
-#============================================================================
-
-
 class ArithmeticFunction:
-    def __init__(self, function):
-        self.function = function
+    def set_function(self, func):
+        self.func = func
+
+    def __init__(self, func):
+        self.set_function(func)
 
     def __call__(self, n: int):
-        return self.function(n)
+        assert n > 0
+        return self.func(n)
 
     def __add__(self, other):
-        def h(n: int):
-            assert n > 0
-            return self.function(n) + other.function(n)
-        return h
+        return ArithmeticFunction(lambda n: self(n) + other(n))
 
     def __mul__(self, other):
-        def h(n: int):
-            assert n > 0
+        def f(n: int):
             ret = 0
-            factors = get_factors(n)
-            for d in factors:
+            for d in factors(n):
                 ret += self(d) * other(n // d)
             return ret
-        return h
+        return ArithmeticFunction(f)
 
-    def inv(self, n: int):
-        if n == 1:
-            return 1 / n
+    def inv(self):
+        def f(n: int):
+            if self(1) == 0:
+                raise ArithmeticError("f(1) must not be zero")
+            if n == 1:
+                return 1 / self(1)
+            else:
+                s = 0
+                for d in factors(n):
+                    if d != 1:
+                        s += self(d) * self.inv()(n // d)
+                return -s / self(1)
+        return ArithmeticFunction(f)
+
+    def test(self, n: int, end=", "):
+        for i in range(1, n+1):
+            if i == n:
+                print(self(i))
+            else:
+                print(self(i), end=end)
+
+    def __eq__(self, other):  # random
+        lim = 1000000
+        cnt = 100
+        eps = 1e-6
+        for _ in range(cnt):
+            n = random.randint(1, lim)
+            if abs(self(n) - other(n)) > eps:
+                return False
+        return True
+
+
+def dot_product(f: ArithmeticFunction, g: ArithmeticFunction):
+    return ArithmeticFunction(lambda n: f(n) * g(n))
+
+
+class MultiplicativeFunction(ArithmeticFunction):
+    def set_fpk(self, fpk):
+        self.fpk = fpk
+
+        def f(n: int):
+            ret = 1
+            for p, k in prime_factors(n):
+                ret *= fpk(p, k)
+            return ret
+        self.set_function(f)
+
+    def __init__(self, fpk):
+        self.set_fpk(fpk)
+
+
+epsilon = MultiplicativeFunction(lambda p, k: int(k == 0))
+constant = MultiplicativeFunction(lambda p, k: 1)
+mu = MultiplicativeFunction(lambda p, k: 1 if k == 0 else -1 if k == 1 else 0)
+phi = MultiplicativeFunction(lambda p, k: qpow(p, k) - qpow(p, k-1))
+
+
+class Id(MultiplicativeFunction):
+    def __init__(self, e: int):
+        MultiplicativeFunction.__init__(self, lambda p, k: qpow(p, k * e))
+
+
+class Sigma(MultiplicativeFunction):
+    def __init__(self, e: int):
+        if e == 0:
+            MultiplicativeFunction.__init__(self, lambda p, k: k+1)
         else:
-            return (
-                -1 / self(1)
-                * sum([self(d) * self.inv(n // d) for d in get_factors(n) if d != 1])
-            )
+            MultiplicativeFunction.__init__(self, lambda p, k: int((
+                qpow(p, (k + 1) * e) - 1) / (qpow(p, e) - 1)))
 
 
-#============================================================================
+class AdditiveFunction(ArithmeticFunction):
+    def set_fpk(self, fpk):
+        self.fpk = fpk
+
+        def f(n: int):
+            ret = 0
+            for p, k in prime_factors(n):
+                ret += fpk(p, k)
+            return ret
+        self.set_function(f)
+
+    def __init__(self, fpk):
+        self.set_fpk(fpk)
 
 
-class IdentityFunction(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        return int(n == 1)
-
-    def __init__(self):
-        self.function = self.f
-
-    def __repr__(self):
-        return "epsilon(x)"
-
-
-epsilon = IdentityFunction()
-
-
-#============================================================================
-
-
-class Sigma0Function(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        return len(get_factors(n))
-
-    def __init__(self):
-        self.function = self.f
-
-    def __repr__(self):
-        return "sigma0(x), or d(x)"
-
-
-d = Sigma0Function()
-
-
-#============================================================================
-
-
-class TotientFunction(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        ret = n
-        i = 2
-        while i * i <= n:
-            if n % i == 0:
-                ret = ret // i * (i - 1)
-                while n % i == 0:
-                    n //= i
-            i += 1
-        if n != 1:
-            ret = ret // n * (n - 1)
-        return ret
-
-    def __init__(self):
-        self.function = self.f
-
-    def __repr__(self):
-        return "phi(x)"
-
-
-phi = TotientFunction()
-
-
-#============================================================================
-
-
-class ConstantFunction(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        return 1
-
-    def __init__(self):
-        self.function = self.f
-
-    def __repr__(self):
-        return "1(x)"
-
-
-one = ConstantFunction()
-
-
-#============================================================================
-
-
-class PowerFunction(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        return qpow(n, self.k)
-
-    def __init__(self, k: int = 1):
-        assert k >= 0
-        self.k = k
-        self.function = self.f
-
-    def __repr__(self):
-        return f"id_k(x), k={self.k}"
-
-
-Id = PowerFunction()
-
-
-#============================================================================
-
-
-class MobiusFunction(ArithmeticFunction):
-    def f(self, n: int):
-        assert n > 0
-        ret = 1
-        i = 2
-        while i * i <= n:
-            if n % i == 0:
-                n //= i
-                ret *= -1
-            if n % i == 0:
-                return 0
-            i += 1
-        if n != 1:
-            ret *= -1
-        return ret
-
-
-    def __init__(self, k: int = 1):
-        assert k >= 0
-        self.k = k
-        self.function = self.f
-
-    def __repr__(self):
-        return "mu(x)"
-
-
-mu = MobiusFunction()
-
-
-#============================================================================
+omega = AdditiveFunction(lambda p, k: 1)
