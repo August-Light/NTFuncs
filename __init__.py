@@ -31,7 +31,16 @@ def prime_factors(n):
     return ret
 
 
-def qpow(a: int, b: int):
+def partial_sum(f):
+    def s(n):
+        ret = 0
+        for i in range(1, n+1):
+            ret += f(i)
+        return ret
+    return ArithmeticFunction(s)
+
+
+def qpow(a, b: int):
     if b < 0:
         raise ArithmeticError("The exponent must be nonnegative")
     ret = 1
@@ -56,6 +65,9 @@ class ArithmeticFunction:
 
     def __add__(self, other):
         return ArithmeticFunction(lambda n: self(n) + other(n))
+
+    def __sub__(self, other):
+        return ArithmeticFunction(lambda n: self(n) - other(n))
 
     def __mul__(self, other):
         def f(n: int):
@@ -87,18 +99,28 @@ class ArithmeticFunction:
                 print(self(i), end=end)
 
     def __eq__(self, other):  # random
-        lim = 1000000
-        cnt = 100
-        eps = 1e-6
-        for _ in range(cnt):
-            n = random.randint(1, lim)
-            if abs(self(n) - other(n)) > eps:
-                return False
-        return True
+        return function_equal(self, other)
+
+
+def function_equal(self, other, lim=10000, cnt=100, eps=1e-6):  # random
+    for _ in range(cnt):
+        n = random.randint(1, lim)
+        if abs(self(n) - other(n)) > eps:
+            print(f"f({n}) = {self(n)}, g({n}) = {other(n)}")
+            return False
+    return True
 
 
 def dot_product(f, g):
     return ArithmeticFunction(lambda n: f(n) * g(n))
+
+def composition(f, g):
+    return ArithmeticFunction(lambda n: f(g(n)))
+
+
+sum_of_pow1 = ArithmeticFunction(lambda n: n * (n + 1) / 2)
+sum_of_pow2 = ArithmeticFunction(lambda n: n * (n + 1) / 2 * (2 * n + 1) / 3)
+sum_of_pow3 = ArithmeticFunction(lambda n: sum_of_pow1(n) * sum_of_pow1(n))
 
 
 class MultiplicativeFunction(ArithmeticFunction):
@@ -120,6 +142,7 @@ epsilon = MultiplicativeFunction(lambda p, k: int(k == 0))
 constant = MultiplicativeFunction(lambda p, k: 1)
 mu = MultiplicativeFunction(lambda p, k: 1 if k == 0 else -1 if k == 1 else 0)
 phi = MultiplicativeFunction(lambda p, k: qpow(p, k) - qpow(p, k-1))
+liouville_lambda = MultiplicativeFunction(lambda p, k: -1 if k % 2 == 1 else 1)
 
 
 class Id(MultiplicativeFunction):
@@ -152,4 +175,4 @@ class AdditiveFunction(ArithmeticFunction):
 
 
 omega = AdditiveFunction(lambda p, k: 1)
-bigomega = AdditiveFunction(lambda p, k: k)
+big_omega = AdditiveFunction(lambda p, k: k)
