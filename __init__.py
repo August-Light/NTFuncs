@@ -102,11 +102,15 @@ class ArithmeticFunction:
         return function_equal(self, other)
 
 
-def function_equal(self, other, lim=10000, cnt=100, eps=1e-6):  # random
+def function_equal(f, g, lim=10000, cnt=100, eps=1e-6):  # random
+    for n in range(1, 21):
+        if abs(f(n) - g(n)) > eps:
+            print(f"f({n}) = {f(n)}, g({n}) = {g(n)}")
+            return False
     for _ in range(cnt):
         n = random.randint(1, lim)
-        if abs(self(n) - other(n)) > eps:
-            print(f"f({n}) = {self(n)}, g({n}) = {other(n)}")
+        if abs(f(n) - g(n)) > eps:
+            print(f"f({n}) = {f(n)}, g({n}) = {g(n)}")
             return False
     return True
 
@@ -176,3 +180,12 @@ class AdditiveFunction(ArithmeticFunction):
 
 omega = AdditiveFunction(lambda p, k: 1)
 big_omega = AdditiveFunction(lambda p, k: k)
+
+class Nu(ArithmeticFunction):
+    def __init__(self, e: int):
+        def f(n: int):
+            for p, k in prime_factors(n):
+                if (p == e):
+                    return k
+            return 0
+        self.set_function(f)

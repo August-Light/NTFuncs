@@ -45,6 +45,7 @@ f.test(20)
 - `Sigma(k)`：$\sigma_k(x) = \sum\limits_{d|x} x^k$。
 - `omega`：$\omega(x)$ 为 $x$ 的不同质因子个数（[A001221](https://oeis.org/A001221)）。
 - `big_omega`：$\Omega(x)$ 为 $x$ 的质因子个数（可重复）（[A001222](https://oeis.org/A001222)）。
+- `Nu(p)`：$\nu_p(x)$ 为 $x$ 的质因数分解中 $p$ 的次数。
 - `sum_of_pow1`：$f(n) = \sum\limits_{i=1}^n i$。
 - `sum_of_pow2`：$f(n) = \sum\limits_{i=1}^n i^2$。
 - `sum_of_pow3`：$f(n) = \sum\limits_{i=1}^n i^3$。
